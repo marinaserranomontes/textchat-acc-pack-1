@@ -56,7 +56,7 @@ There are 3 options for installing the OpenTok Text Chat Accelerator Pack librar
 1. Clone the [OpenTok Text Chat Accelerator Pack repo](https://github.com/opentok/textchat-acc-pack).
 2. From the OpenTok Text Chat Sample app project, right-click the app name and select **New > Module > Import Gradle Project**.
 3. Navigate to the directory in which you cloned **OpenTok Text Chat Accelerator Pack**, select **text-chat-acc-pack-kit**, and click **Finish**.
-4. Open the **build.gradle** file for the app and ensure the following lines have been added to the `dependencies` section:
+4. Open the **build.gradle** file for the app and ensure the following line has been added to the `dependencies` section:
 ```
 compile project(':text-chat-acc-pack-kit')
 ```
