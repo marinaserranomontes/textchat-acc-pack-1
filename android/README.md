@@ -77,7 +77,7 @@ maven { url  "http://tokbox.bintray.com/maven" }
 
 
 <code>
-compile 'com.opentok.android:opentok-text-chat-acc-pack:1.0.0’
+compile 'com.opentok.android:opentok-text-chat-acc-pack:1.0.0'
 </code>
 
 </li>
