@@ -2,7 +2,7 @@
 
 ## Code of Conduct
 
-Please read our [Code of Conduct](https://github.com/opentok/one-to-one-sample-apps/blob/master/.github/CONDUCT.md). Intolerance, disrespect, and any of form of negativity will not be tolerated.
+Please read our [Code of Conduct](./CONDUCT.md). Intolerance, disrespect, and any of form of negativity will not be tolerated.
 
 ## Opening a new issue
 
