@@ -75,17 +75,17 @@ public class TestBase extends AndroidTestCase {
         this.context = getContext();
     }
 
-    protected void setUp(int key, String secret) throws Exception {
+    protected void setUp(String key, String secret) throws Exception {
         super.setUp();
 
         this.context = getContext();
-        this.apiKey = String.valueOf(key);
+        this.apiKey = key;
         this.apiSecret = secret;
 
     }
-    protected void setUp(String sessionId, String token, int key) throws Exception {
+    protected void setUp(String sessionId, String token, String key) throws Exception {
         this.context = getContext();
-        this.apiKey = String.valueOf(key);
+        this.apiKey = key;
         this.token = token;
         this.sessionId = sessionId;
     }

@@ -161,7 +161,7 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
     */
     public static TextChatFragment newInstance(AccPackSession session, String apiKey) {
 
-        if ( session == null || apiKey == null || apiKey.length() == 0 || apiKey.trim().length() == 0 ){
+        if ( session == null || apiKey == null || apiKey.trim().length() == 0 ){
             throw new IllegalArgumentException("Arguments cannot be null");
         }
 
@@ -307,7 +307,7 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
      */
     public void setSenderAlias(String senderAlias) throws Exception {
 
-        if ( senderAlias == null || senderAlias.isEmpty() || senderAlias.length() == 0 ) {
+        if ( senderAlias == null || senderAlias.length() == 0 ) {
             onError("The alias cannot be null or empty");
             throw new Exception("Sender allias cannot be null or empty");
         }
