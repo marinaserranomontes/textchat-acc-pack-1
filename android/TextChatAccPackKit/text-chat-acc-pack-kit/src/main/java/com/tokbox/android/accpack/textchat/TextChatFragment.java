@@ -27,10 +27,13 @@ import com.opentok.android.Connection;
 import com.opentok.android.OpentokError;
 import com.opentok.android.Session;
 import com.opentok.android.Stream;
-import com.tokbox.android.accpack.AccPackSession;
+
 import com.tokbox.android.accpack.textchat.config.OpenTokConfig;
+import com.tokbox.android.listeners.SignalListener;
 import com.tokbox.android.logging.OTKAnalytics;
 import com.tokbox.android.logging.OTKAnalyticsData;
+import com.tokbox.android.signal.SignalInfo;
+import com.tokbox.android.wrapper.OTWrapper;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,13 +48,14 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 
-public class TextChatFragment extends Fragment implements AccPackSession.SignalListener, AccPackSession.SessionListener {
+public class TextChatFragment extends Fragment implements SignalListener {
 
     private final static String LOG_TAG = Fragment.class.getSimpleName();
 
     private final static int MAX_OPENTOK_LENGTH = 8196;
     private final static int MAX_DEFAULT_LENGTH = 1000;
     private final static String DEFAULT_SENDER_ALIAS = "me";
+    private final static String SIGNAL_TYPE = "text-chat";
 
     private RecyclerView mRecyclerView;
     private LinearLayout mContentView;
@@ -75,11 +79,13 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
     private boolean customActionBar = false;
     private boolean customSenderArea = false;
 
-    private AccPackSession mSession;
+    //private AccPackSession mSession;
+    private OTWrapper sdkWrapper;
     private String mApiKey;
 
     private OTKAnalyticsData mAnalyticsData;
     private OTKAnalytics mAnalytics;
+
 
     /**
      * Monitors state changes in the TextChatFragment.
@@ -159,7 +165,7 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
     * @param session The OpenTok session instance.
     * @param apiKey  The API Key.
     */
-    public static TextChatFragment newInstance(AccPackSession session, String apiKey) {
+    /*public static TextChatFragment newInstance(AccPackSession session, String apiKey) {
 
         if ( session == null || apiKey == null || apiKey.trim().length() == 0 ){
             throw new IllegalArgumentException("Arguments cannot be null");
@@ -176,6 +182,27 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
         fragment.mApiKey = apiKey;
 
         return fragment;
+    }*/
+
+    public static TextChatFragment newInstance(OTWrapper sdkWrapper, String apiKey) {
+
+        if ( sdkWrapper == null || apiKey == null || apiKey.trim().length() == 0 ){
+            throw new IllegalArgumentException("Arguments cannot be null");
+        }
+
+        TextChatFragment fragment = new TextChatFragment();
+
+        fragment.senderId = UUID.randomUUID().toString(); //by default
+        fragment.senderAlias = DEFAULT_SENDER_ALIAS; // by default
+
+        fragment.sdkWrapper = sdkWrapper;
+        fragment.mApiKey = apiKey;
+
+        return fragment;
+    }
+
+    public void init(){
+        this.sdkWrapper.addSignalListener(SIGNAL_TYPE, this);
     }
 
     @Override
@@ -239,6 +266,8 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
         });
 
         updateTitle(defaultTitle());
+
+        init();
 
         return rootView;
     }
@@ -436,7 +465,8 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
                     e.printStackTrace();
                 }
                 addLogEvent(OpenTokConfig.LOG_ACTION_SEND_MESSAGE, OpenTokConfig.LOG_VARIATION_ATTEMPT);
-                mSession.sendSignal("text-chat", messageObj.toString());
+
+                sdkWrapper.sendSignal(new SignalInfo(sdkWrapper.getOwnConnId(), null, SIGNAL_TYPE, messageObj.toString()));
             }
         } else {
             mMsgEditText.setEnabled(true);
@@ -481,8 +511,13 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
     }
 
     //Update the title bar
-    private void updateTitle(String title) {
-        mTitleBar.setText(title);
+    private void updateTitle(final String title) {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mTitleBar.setText(title);
+            }
+        });
     }
 
     //add log events
@@ -531,7 +566,6 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
     }
 
     protected void onClose() {
-
         addLogEvent(OpenTokConfig.LOG_ACTION_CLOSE, OpenTokConfig.LOG_VARIATION_ATTEMPT);
         if (this.mListener != null) {
             mListener.onClosed();
@@ -561,77 +595,8 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
         }
     }
 
-    //OPENTOK EVENTS
-    @Override
-    public void onSignalReceived(Session session, String type, String data, Connection connection) {
-        ChatMessage msg = null;
-        String senderId = null;
-        String senderAlias = null;
-        String text = null;
-        Long date = null;
 
-        if (type.equals("text-chat")){
-            JSONObject json = null;
-            try {
-                json = new JSONObject(data);
-                text = json.getString("text");
-                date = json.getLong("sentOn");
-                JSONObject sender = json.getJSONObject("sender");
-                senderId = sender.getString("id");
-                senderAlias = sender.getString("alias");
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-            if (text == null || text.isEmpty()){
-                onError("Message format is wrong. Text is empty or null");
-                if(connection.getConnectionId().equals(mSession.getConnection().getConnectionId()) ) {
-                    addLogEvent(OpenTokConfig.LOG_ACTION_SEND_MESSAGE, OpenTokConfig.LOG_VARIATION_ERROR);
-                }
-                else {
-                    addLogEvent(OpenTokConfig.LOG_ACTION_RECEIVE_MESSAGE, OpenTokConfig.LOG_VARIATION_ERROR);
-                }
-            }
-            else {
-                if (connection.getConnectionId().equals(mSession.getConnection().getConnectionId())){
-                    try {
-                        msg = new ChatMessage.ChatMessageBuilder(senderId, UUID.randomUUID(), ChatMessage.MessageStatus.SENT_MESSAGE)
-                                .senderAlias(senderAlias)
-                                .text(text)
-                                .build();
-                        msg.setTimestamp(Long.valueOf(date).longValue());
-                        mMsgEditText.setEnabled(true);
-                        mMsgEditText.setFocusable(true);
-                        mMsgEditText.setText("");
-                        mMsgCharsView.setTextColor(getResources().getColor(R.color.info));
-                        addMessage(msg);
-                        onNewSentMessage(msg);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                }
-                else {
-                    Log.i(LOG_TAG, "A new message has been received "+data);
-                    addLogEvent(OpenTokConfig.LOG_ACTION_RECEIVE_MESSAGE, OpenTokConfig.LOG_VARIATION_ATTEMPT);
-                    try {
-                        msg = new ChatMessage.ChatMessageBuilder(senderId, UUID.randomUUID(), ChatMessage.MessageStatus.RECEIVED_MESSAGE)
-                                .senderAlias(senderAlias)
-                                .text(text)
-                                .build();
-                        msg.setTimestamp(Long.valueOf(date).longValue());
-                        addMessage(msg);
-                        onNewReceivedMessage(msg);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                }
-            }
-        }
-    }
-
-    @Override
+    /*@Override
     public void onConnected(Session session) {
 
         mAnalyticsData.setSessionId(session.getSessionId());
@@ -681,6 +646,86 @@ public class TextChatFragment extends Fragment implements AccPackSession.SignalL
         }
         else {
             addLogEvent(OpenTokConfig.LOG_ACTION_START, OpenTokConfig.LOG_VARIATION_ERROR);
+        }
+    }
+*/
+
+    @Override
+    public void onSignalReceived(SignalInfo signalInfo, boolean isSelfSignal) {
+        ChatMessage msg = null;
+        String senderId = null;
+        String senderAlias = null;
+        String text = null;
+        Long date = null;
+
+        JSONObject json = null;
+        try {
+            json = new JSONObject((String)signalInfo.mData);
+            text = json.getString("text");
+            date = json.getLong("sentOn");
+            JSONObject sender = json.getJSONObject("sender");
+            senderId = sender.getString("id");
+            senderAlias = sender.getString("alias");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        if (text == null || text.isEmpty()){
+            onError("Message format is wrong. Text is empty or null");
+            if(signalInfo.mSrcConnId.equals(signalInfo.mDstConnId) ) {
+                addLogEvent(OpenTokConfig.LOG_ACTION_SEND_MESSAGE, OpenTokConfig.LOG_VARIATION_ERROR);
+            }
+            else {
+                addLogEvent(OpenTokConfig.LOG_ACTION_RECEIVE_MESSAGE, OpenTokConfig.LOG_VARIATION_ERROR);
+            }
+        }
+        else {
+            if (signalInfo.mSrcConnId.equals(signalInfo.mDstConnId)){
+                try {
+                    msg = new ChatMessage.ChatMessageBuilder(senderId, UUID.randomUUID(), ChatMessage.MessageStatus.SENT_MESSAGE)
+                            .senderAlias(senderAlias)
+                            .text(text)
+                            .build();
+                    msg.setTimestamp(Long.valueOf(date).longValue());
+                    final ChatMessage sentMessage = msg;
+
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mMsgEditText.setEnabled(true);
+                            mMsgEditText.setFocusable(true);
+                            mMsgEditText.setText("");
+                            mMsgCharsView.setTextColor(getResources().getColor(R.color.info));
+                            try {
+                                addMessage(sentMessage);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+
+                    onNewSentMessage(msg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+            else {
+                Log.i(LOG_TAG, "A new message has been received "+signalInfo.mData);
+                addLogEvent(OpenTokConfig.LOG_ACTION_RECEIVE_MESSAGE, OpenTokConfig.LOG_VARIATION_ATTEMPT);
+                try {
+                    ChatMessage receivedMsg = new ChatMessage.ChatMessageBuilder(senderId, UUID.randomUUID(), ChatMessage.MessageStatus.RECEIVED_MESSAGE)
+                            .senderAlias(senderAlias)
+                            .text(text)
+                            .build();
+                    receivedMsg.setTimestamp(Long.valueOf(date).longValue());
+                    addMessage(receivedMsg);
+                    onNewReceivedMessage(receivedMsg);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
         }
     }
 

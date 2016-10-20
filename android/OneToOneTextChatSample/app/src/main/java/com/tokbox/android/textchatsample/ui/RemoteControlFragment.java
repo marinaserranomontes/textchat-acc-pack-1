@@ -111,37 +111,37 @@ public class RemoteControlFragment extends Fragment {
         mAudioBtn.setOnClickListener(mBtnClickListener);
         mVideoBtn.setOnClickListener(mBtnClickListener);
 
-        mAudioBtn.setImageResource(mActivity.getComm().getRemoteAudio()
+        /*mAudioBtn.setImageResource(mActivity.getsOTWrapper().is
                 ? R.drawable.audio
                 : R.drawable.no_audio);
 
         mVideoBtn.setImageResource(mActivity.getComm().getRemoteVideo()
                 ? R.drawable.video_icon
-                : R.drawable.no_video_icon);
+                : R.drawable.no_video_icon);*/
 
         return mRootView;
     }
 
     public void updateRemoteAudio(){
-        if(!mActivity.getComm().getRemoteAudio()){
+        //if(!mActivity.getComm().getRemoteAudio()){
             mControlCallbacks.onDisableRemoteAudio(true);
             mAudioBtn.setImageResource(R.drawable.audio);
-        }
-        else {
+        //}
+        //else {
             mControlCallbacks.onDisableRemoteAudio(false);
             mAudioBtn.setImageResource(R.drawable.no_audio);
-        }
+        //}
     }
 
     public void updateRemoteVideo(){
-        if(!mActivity.getComm().getRemoteVideo()){
+        //if(!mActivity.getComm().getRemoteVideo()){
             mControlCallbacks.onDisableRemoteVideo(true);
             mVideoBtn.setImageResource(R.drawable.video_icon);
-        }
-        else {
+        //}
+        //else {
             mControlCallbacks.onDisableRemoteVideo(false);
             mVideoBtn.setImageResource(R.drawable.no_video_icon);
-        }
+        //}
     }
 
     public void show(){

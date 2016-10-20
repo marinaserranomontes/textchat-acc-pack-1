@@ -17,6 +17,7 @@ import android.widget.RelativeLayout;
 
 import com.tokbox.android.textchatsample.MainActivity;
 import com.tokbox.android.textchatsample.R;
+import com.tokbox.android.utils.MediaType;
 
 
 public class PreviewControlFragment extends Fragment {
@@ -145,33 +146,33 @@ public class PreviewControlFragment extends Fragment {
 
         mTextChatBtn.setBackground(drawableBckBtn);
 
-        mAudioBtn.setImageResource(mActivity.getComm().getLocalAudio()
+        mAudioBtn.setImageResource(mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.AUDIO)
                 ? R.drawable.mic_icon
                 : R.drawable.muted_mic_icon);
         mAudioBtn.setBackground(drawableBckBtn);
 
-        mVideoBtn.setImageResource(mActivity.getComm().getLocalVideo()
+        mVideoBtn.setImageResource(mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.VIDEO)
                 ? R.drawable.video_icon
                 : R.drawable.no_video_icon);
         mVideoBtn.setBackground(drawableBckBtn);
 
-        mCallBtn.setImageResource(mActivity.getComm().isStarted()
+        mCallBtn.setImageResource(mActivity.isCallInProgress()
                 ? R.drawable.hang_up
                 : R.drawable.start_call);
 
-        mCallBtn.setBackground(mActivity.getComm().isStarted()
+        mCallBtn.setBackground(mActivity.isCallInProgress()
                 ? drawableEndCall
                 : drawableStartCall);
 
         mCallBtn.setOnClickListener(mBtnClickListener);
 
-        setEnabled(mActivity.getComm().isStarted());
+        setEnabled(mActivity.isCallInProgress());
 
         return rootView;
     }
 
     public void updateLocalAudio() {
-        if (!mActivity.getComm().getLocalAudio()) {
+        if (!mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.AUDIO)) {
             mControlCallbacks.onDisableLocalAudio(true);
             mAudioBtn.setImageResource(R.drawable.mic_icon);
         } else {
@@ -181,7 +182,7 @@ public class PreviewControlFragment extends Fragment {
     }
 
     public void updateLocalVideo() {
-        if (!mActivity.getComm().getLocalVideo()) {
+        if (!mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.VIDEO)){
             mControlCallbacks.onDisableLocalVideo(true);
             mVideoBtn.setImageResource(R.drawable.video_icon);
         } else {
@@ -191,11 +192,11 @@ public class PreviewControlFragment extends Fragment {
     }
 
     public void updateCall() {
-        mCallBtn.setImageResource(!mActivity.getComm().isStarted()
+       mCallBtn.setImageResource(!mActivity.isCallInProgress()
                 ? R.drawable.hang_up
                 : R.drawable.start_call);
 
-        mCallBtn.setBackground(!mActivity.getComm().isStarted()
+        mCallBtn.setBackground(!mActivity.isCallInProgress()
                 ? drawableEndCall
                 : drawableStartCall);
 
