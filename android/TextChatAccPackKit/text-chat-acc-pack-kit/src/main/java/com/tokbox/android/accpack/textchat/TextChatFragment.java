@@ -23,17 +23,13 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.opentok.android.Connection;
-import com.opentok.android.OpentokError;
-import com.opentok.android.Session;
-import com.opentok.android.Stream;
-
 import com.tokbox.android.accpack.textchat.config.OpenTokConfig;
-import com.tokbox.android.listeners.SignalListener;
 import com.tokbox.android.logging.OTKAnalytics;
 import com.tokbox.android.logging.OTKAnalyticsData;
-import com.tokbox.android.signal.SignalInfo;
-import com.tokbox.android.wrapper.OTWrapper;
+import com.tokbox.android.otsdkwrapper.listeners.SignalListener;
+import com.tokbox.android.otsdkwrapper.signal.SignalInfo;
+import com.tokbox.android.otsdkwrapper.wrapper.OTWrapper;
+
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -127,11 +123,33 @@ public class TextChatFragment extends Fragment implements SignalListener {
         void onRestarted();
     }
 
-    /*
-    * Default constructor.
-    */
+    /**
+     * Creates a new TextChatFragment instance.
+     */
     public TextChatFragment(){
 
+    }
+
+    /**
+     * Creates a new TextChatFragment instance
+     * @param sdkWrapper the opentok sdk instance
+     * @param apiKey the partner id
+     */
+    public static TextChatFragment newInstance(OTWrapper sdkWrapper, String apiKey) {
+
+        if ( sdkWrapper == null || apiKey == null || apiKey.trim().length() == 0 ){
+            throw new IllegalArgumentException("Arguments cannot be null");
+        }
+
+        TextChatFragment fragment = new TextChatFragment();
+
+        fragment.senderId = UUID.randomUUID().toString(); //by default
+        fragment.senderAlias = DEFAULT_SENDER_ALIAS; // by default
+
+        fragment.sdkWrapper = sdkWrapper;
+        fragment.mApiKey = apiKey;
+
+        return fragment;
     }
 
     @Override
@@ -158,51 +176,6 @@ public class TextChatFragment extends Fragment implements SignalListener {
 
         addLogEvent(OpenTokConfig.LOG_ACTION_INITIALIZE, OpenTokConfig.LOG_VARIATION_ATTEMPT);
         addLogEvent(OpenTokConfig.LOG_ACTION_INITIALIZE, OpenTokConfig.LOG_VARIATION_SUCCESS);
-    }
-
-    /*
-    * Constructor.
-    * @param session The OpenTok session instance.
-    * @param apiKey  The API Key.
-    */
-    /*public static TextChatFragment newInstance(AccPackSession session, String apiKey) {
-
-        if ( session == null || apiKey == null || apiKey.trim().length() == 0 ){
-            throw new IllegalArgumentException("Arguments cannot be null");
-        }
-
-        TextChatFragment fragment = new TextChatFragment();
-
-        fragment.senderId = UUID.randomUUID().toString(); //by default
-        fragment.senderAlias = DEFAULT_SENDER_ALIAS; // by default
-
-        fragment.mSession = session;
-        fragment.mSession.setSignalListener(fragment);
-        fragment.mSession.setSessionListener(fragment);
-        fragment.mApiKey = apiKey;
-
-        return fragment;
-    }*/
-
-    public static TextChatFragment newInstance(OTWrapper sdkWrapper, String apiKey) {
-
-        if ( sdkWrapper == null || apiKey == null || apiKey.trim().length() == 0 ){
-            throw new IllegalArgumentException("Arguments cannot be null");
-        }
-
-        TextChatFragment fragment = new TextChatFragment();
-
-        fragment.senderId = UUID.randomUUID().toString(); //by default
-        fragment.senderAlias = DEFAULT_SENDER_ALIAS; // by default
-
-        fragment.sdkWrapper = sdkWrapper;
-        fragment.mApiKey = apiKey;
-
-        return fragment;
-    }
-
-    public void init(){
-        this.sdkWrapper.addSignalListener(SIGNAL_TYPE, this);
     }
 
     @Override
@@ -408,6 +381,10 @@ public class TextChatFragment extends Fragment implements SignalListener {
     }
 
     //Private methods
+    private void init(){
+        this.sdkWrapper.addSignalListener(SIGNAL_TYPE, this);
+    }
+
     //Add a message to the message list.
     private void addMessage(final ChatMessage msg) throws Exception {
         Log.i(LOG_TAG, "New message " + msg.getText() + " is ready to be added.");
@@ -426,18 +403,28 @@ public class TextChatFragment extends Fragment implements SignalListener {
                 msg.setTimestamp(date.getTime());
             }
 
-            if (!checkMessageGroup(msg)) {
-                messagesList.add(msg);
-                mMessageAdapter.notifyDataSetChanged();
-            } else {
-                //concat text for the messages group
-                String msgText = messagesList.get(messagesList.size() - 1).getText() + "\r\n" + msg.getText();
-                msg.setText(msgText);
-                messagesList.set(messagesList.size() - 1, msg);
-                mMessageAdapter.notifyDataSetChanged();
-            }
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!checkMessageGroup(msg)) {
+                        messagesList.add(msg);
+                        mMessageAdapter.notifyDataSetChanged();
+                    } else {
+                        //concat text for the messages group
+                        String msgText = messagesList.get(messagesList.size() - 1).getText() + "\r\n" + msg.getText();
+                        try {
+                            msg.setText(msgText);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        messagesList.set(messagesList.size() - 1, msg);
+                        mMessageAdapter.notifyDataSetChanged();
+                    }
 
-            mRecyclerView.smoothScrollToPosition(mMessageAdapter.getItemCount() - 1); //update based on adapter
+                    mRecyclerView.smoothScrollToPosition(mMessageAdapter.getItemCount() - 1); //update based on adapter
+
+                }
+            });
         }
     }
 
@@ -557,7 +544,7 @@ public class TextChatFragment extends Fragment implements SignalListener {
         }
     };
 
-    //TEXTCHAT LISTENER events
+    //Text-chat listener events
     protected void onError(String error) {
         if (this.mListener != null) {
             Log.d(LOG_TAG, "onTextChatError");
@@ -568,6 +555,7 @@ public class TextChatFragment extends Fragment implements SignalListener {
     protected void onClose() {
         addLogEvent(OpenTokConfig.LOG_ACTION_CLOSE, OpenTokConfig.LOG_VARIATION_ATTEMPT);
         if (this.mListener != null) {
+            Log.d(LOG_TAG, "onClosed");
             mListener.onClosed();
         }
         isRestarted = true;
@@ -577,6 +565,7 @@ public class TextChatFragment extends Fragment implements SignalListener {
 
     protected void onNewSentMessage(ChatMessage message){
         if (this.mListener != null) {
+            Log.d(LOG_TAG, "onNewSentMessage");
             mListener.onNewSentMessage(message);
         }
         addLogEvent(OpenTokConfig.LOG_ACTION_SEND_MESSAGE, OpenTokConfig.LOG_VARIATION_SUCCESS);
@@ -584,6 +573,7 @@ public class TextChatFragment extends Fragment implements SignalListener {
 
     protected void onNewReceivedMessage(ChatMessage message){
         if (this.mListener != null) {
+            Log.d(LOG_TAG, "onNewReceivedMessage");
             mListener.onNewReceivedMessage(message);
         }
         addLogEvent(OpenTokConfig.LOG_ACTION_RECEIVE_MESSAGE, OpenTokConfig.LOG_VARIATION_SUCCESS);
@@ -591,74 +581,20 @@ public class TextChatFragment extends Fragment implements SignalListener {
 
     protected void onRestart(){
         if (this.mListener != null ) {
+            Log.d(LOG_TAG, "onRestart");
             mListener.onRestarted();
         }
     }
 
-
-    /*@Override
-    public void onConnected(Session session) {
-
-        mAnalyticsData.setSessionId(session.getSessionId());
-        mAnalyticsData.setConnectionId(session.getConnection().getConnectionId());
-
-        addLogEvent(OpenTokConfig.LOG_ACTION_START, OpenTokConfig.LOG_VARIATION_ATTEMPT);
-        try {
-            //TO IMPROVE: add pending log events --> recall methods
-            if (this.maxTextLength != MAX_DEFAULT_LENGTH) {
-                setMaxTextLength(this.maxTextLength);
-            }
-            if (this.senderAlias != DEFAULT_SENDER_ALIAS) {
-                setSenderAlias(this.senderAlias);
-            }
-            if (this.customActionBar) {
-                setActionBar(this.mActionBarView);
-            }
-            if (this.customSenderArea) {
-                setSendMessageView(this.mSendMessageView);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        addLogEvent(OpenTokConfig.LOG_ACTION_START, OpenTokConfig.LOG_VARIATION_SUCCESS);
-    }
-
-    @Override
-    public void onDisconnected(Session session) {
-        addLogEvent(OpenTokConfig.LOG_ACTION_END, OpenTokConfig.LOG_VARIATION_ATTEMPT);
-        addLogEvent(OpenTokConfig.LOG_ACTION_END, OpenTokConfig.LOG_VARIATION_SUCCESS);
-    }
-
-    @Override
-    public void onStreamReceived(Session session, Stream stream) {
-    }
-
-    @Override
-    public void onStreamDropped(Session session, Stream stream) {
-    }
-
-    @Override
-    public void onError(Session session, OpentokError opentokError) {
-        onError(opentokError.getMessage());
-
-        if (opentokError.getErrorCode().equals(OpentokError.ErrorCode.SessionInvalidSignalType) || opentokError.getErrorCode().equals(OpentokError.ErrorCode.SessionSignalDataTooLong) || opentokError.getErrorCode().equals(OpentokError.ErrorCode.SessionSignalTypeTooLong) ) {
-            addLogEvent(OpenTokConfig.LOG_ACTION_SEND_MESSAGE, OpenTokConfig.LOG_VARIATION_ERROR);
-        }
-        else {
-            addLogEvent(OpenTokConfig.LOG_ACTION_START, OpenTokConfig.LOG_VARIATION_ERROR);
-        }
-    }
-*/
-
     @Override
     public void onSignalReceived(SignalInfo signalInfo, boolean isSelfSignal) {
-        ChatMessage msg = null;
-        String senderId = null;
+       String senderId = null;
         String senderAlias = null;
         String text = null;
         Long date = null;
+        ChatMessage msg;
+        JSONObject json;
 
-        JSONObject json = null;
         try {
             json = new JSONObject((String)signalInfo.mData);
             text = json.getString("text");
@@ -708,7 +644,6 @@ public class TextChatFragment extends Fragment implements SignalListener {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-
             }
             else {
                 Log.i(LOG_TAG, "A new message has been received "+signalInfo.mData);
@@ -727,16 +662,5 @@ public class TextChatFragment extends Fragment implements SignalListener {
 
             }
         }
-    }
-
-    /**
-     * Converts dp to real pixels, according to the screen density.
-     *
-     * @param dp A number of density-independent pixels.
-     * @return The equivalent number of real pixels.
-     */
-    private int dpToPx(int dp) {
-        double screenDensity = this.getResources().getDisplayMetrics().density;
-        return (int) (screenDensity * (double) dp);
     }
 }

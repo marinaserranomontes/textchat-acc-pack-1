@@ -15,9 +15,9 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 
+import com.tokbox.android.otsdkwrapper.utils.MediaType;
 import com.tokbox.android.textchatsample.MainActivity;
 import com.tokbox.android.textchatsample.R;
-import com.tokbox.android.utils.MediaType;
 
 
 public class PreviewControlFragment extends Fragment {
@@ -146,12 +146,12 @@ public class PreviewControlFragment extends Fragment {
 
         mTextChatBtn.setBackground(drawableBckBtn);
 
-        mAudioBtn.setImageResource(mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.AUDIO)
+        mAudioBtn.setImageResource(mActivity.getWrapper().isLocalMediaEnabled(MediaType.AUDIO)
                 ? R.drawable.mic_icon
                 : R.drawable.muted_mic_icon);
         mAudioBtn.setBackground(drawableBckBtn);
 
-        mVideoBtn.setImageResource(mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.VIDEO)
+        mVideoBtn.setImageResource(mActivity.getWrapper().isLocalMediaEnabled(MediaType.VIDEO)
                 ? R.drawable.video_icon
                 : R.drawable.no_video_icon);
         mVideoBtn.setBackground(drawableBckBtn);
@@ -172,7 +172,7 @@ public class PreviewControlFragment extends Fragment {
     }
 
     public void updateLocalAudio() {
-        if (!mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.AUDIO)) {
+        if (!mActivity.getWrapper().isLocalMediaEnabled(MediaType.AUDIO)) {
             mControlCallbacks.onDisableLocalAudio(true);
             mAudioBtn.setImageResource(R.drawable.mic_icon);
         } else {
@@ -182,7 +182,7 @@ public class PreviewControlFragment extends Fragment {
     }
 
     public void updateLocalVideo() {
-        if (!mActivity.getsOTWrapper().getLocalMediaEnabled(MediaType.VIDEO)){
+        if (!mActivity.getWrapper().isLocalMediaEnabled(MediaType.VIDEO)){
             mControlCallbacks.onDisableLocalVideo(true);
             mVideoBtn.setImageResource(R.drawable.video_icon);
         } else {
@@ -192,7 +192,7 @@ public class PreviewControlFragment extends Fragment {
     }
 
     public void updateCall() {
-       mCallBtn.setImageResource(!mActivity.isCallInProgress()
+        mCallBtn.setImageResource(!mActivity.isCallInProgress()
                 ? R.drawable.hang_up
                 : R.drawable.start_call);
 
@@ -202,10 +202,6 @@ public class PreviewControlFragment extends Fragment {
 
         if ( mControlCallbacks != null )
             mControlCallbacks.onCall();
-    }
-
-    public void updateTextChat() {
-        mControlCallbacks.onTextChat();
     }
 
     public void setEnabled(boolean enabled) {
@@ -222,6 +218,10 @@ public class PreviewControlFragment extends Fragment {
                 mTextChatBtn.setOnClickListener(null);
             }
         }
+    }
+
+    public void updateTextChat() {
+        mControlCallbacks.onTextChat();
     }
 
     public void restart() {

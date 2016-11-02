@@ -2,12 +2,12 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    compileSdkVersion 24
+    buildToolsVersion "23.0.3"
 
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 23
+        targetSdkVersion 24
         versionCode 1
         versionName "1.1.0"
         project.archivesBaseName = "opentok-text-chat-acc-pack"
@@ -107,7 +107,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:+'
     compile 'com.android.support:recyclerview-v7:+'
-    compile 'com.android.support:design:23.+'
-    compile 'com.opentok.android:accelerator-pack:+'
+    compile 'com.android.support:design:24.+'
+    compile 'com.opentok.android:opentok-sdk-wrapper:+'
     compile 'com.opentok.android:opentok-solutions-logging:+'
 }
