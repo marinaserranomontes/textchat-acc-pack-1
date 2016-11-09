@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
@@ -77,12 +78,11 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
     private boolean mAudioPermission = false;
     private boolean mVideoPermission = false;
 
-
     private OTWrapper mWrapper;
+
+    //status
     private boolean isConnected = false;
     private boolean isLocal = false;
-    private boolean isRemote = false;
-
     private boolean isCallInProgress = false;
 
     private String mRemoteId;
@@ -155,12 +155,18 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
         mProgressDialog.show();
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        reloadViews();
+    }
+    
 
     @Override
     protected void onPause() {
         super.onPause();
 
-        if ( mWrapper != null && isCallInProgress ){
+        if (mWrapper != null) {
             mWrapper.pause();
         }
     }
@@ -168,8 +174,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
     @Override
     protected void onResume() {
         super.onResume();
-
-        if ( mWrapper != null && isCallInProgress ){
+        if ( mWrapper != null ){
             mWrapper.resume(true);
         }
     }
@@ -219,7 +224,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
     }
 
     public void showRemoteControlBar(View v) {
-        if (mRemoteFragment != null && isRemote) {
+        if ( mRemoteFragment != null && mRemoteId != null ) {
             mRemoteFragment.show();
         }
     }
@@ -306,12 +311,8 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
         mTextChatContainer.setLayoutParams(params);
     }
 
-    /**
-     * Converts dp to real pixels, according to the screen density.
-     *
-     * @param dp A number of density-independent pixels.
-     * @return The equivalent number of real pixels.
-     */
+
+    //Converts dp to real pixels, according to the screen density.
     private int dpToPx(int dp) {
         double screenDensity = this.getResources().getDisplayMetrics().density;
         return (int) (screenDensity * (double) dp);
@@ -319,10 +320,9 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
 
     //cleans views and controls
     private void cleanViewsAndControls() {
-        if (isRemote) {
+        if ( mRemoteId != null ) {
             mRemoteView = null;
-            isRemote = false;
-            setRemoteView(null);
+            setRemoteView(null, mRemoteId);
         }
         if (isLocal) {
             isLocal = false;
@@ -340,6 +340,25 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
         }
     }
 
+    private void reloadViews(){
+        mRemoteViewContainer.removeAllViews();
+
+        if ( mRemoteId != null ){
+            setRemoteView(mWrapper.getRemoteStreamStatus(mRemoteId).getView(), mRemoteId);
+        }
+    }
+
+    private void checkRemotes(){
+        if ( mRemoteId != null ){
+            if (!mWrapper.isRemoteMediaEnabled(mRemoteId, MediaType.VIDEO)){
+                onAudioOnly(true);
+            }
+            else {
+                setRemoteView(mWrapper.getRemoteStreamStatus(mRemoteId).getView(), mRemoteId);
+            }
+        }
+    }
+
     private void setLocalView(View localView){
         if (localView != null) {
             mPreviewViewContainer.removeAllViews();
@@ -347,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
             layoutParamsPreview = new RelativeLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
-            if (isRemote) {
+            if ( mRemoteId != null ) {
                 layoutParamsPreview.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM,
                         RelativeLayout.TRUE);
                 layoutParamsPreview.addRule(RelativeLayout.ALIGN_PARENT_RIGHT,
@@ -364,12 +383,12 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
         }
     }
 
-    private void setRemoteView(View remoteView){
+    private void setRemoteView(View remoteView, String remoteId) {
         if (mPreviewViewContainer.getChildCount() > 0) {
             setLocalView(mPreviewViewContainer.getChildAt(0)); //main preview view
         }
 
-        if ( remoteView != null ){
+        if (remoteView != null) {
             //show remote view
             RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(
                     this.getResources().getDisplayMetrics().widthPixels, this.getResources()
@@ -377,10 +396,12 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
             mRemoteViewContainer.removeView(remoteView);
             mRemoteViewContainer.addView(remoteView, layoutParams);
             mRemoteViewContainer.setClickable(true);
-            mRemoteFragment.show();
-        }
-        else {
-            mRemoteViewContainer.removeViewAt(mRemoteViewContainer.getChildCount()-1);
+            if (mRemoteFragment != null)
+                mRemoteFragment.show();
+        } else { //view null --> remove view
+            if (mRemoteViewContainer.getChildCount() > 0) {
+                mRemoteViewContainer.removeView(mWrapper.getRemoteStreamStatus(remoteId).getView());
+            }
             mRemoteViewContainer.setClickable(false);
             mAudioOnlyView.setVisibility(View.GONE);
         }
@@ -433,17 +454,16 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                     Log.i(LOG_TAG, "Remove view is ready");
                     if ( remoteId == mRemoteId ) {
                         if (isCallInProgress()) {
-                            setRemoteView(remoteView);
+                            setRemoteView(remoteView, mRemoteId);
                         }
                         mRemoteView = remoteView;
-                        isRemote = true;
                     }
                 }
 
                 @Override
                 public void onRemoteViewDestroyed(OTWrapper otWrapper, View remoteView, String remoteId) throws ListenerException {
                     Log.i(LOG_TAG, "Remote view is destroyed");
-                    setRemoteView(null);
+                    setRemoteView(null, remoteId);
                     mRemoteView = null;
                 }
 
@@ -451,6 +471,8 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                 @Override
                 public void onStartedSharingMedia(OTWrapper otWrapper, boolean screensharing) throws ListenerException {
                     Log.i(LOG_TAG, "Local started streaming video.");
+                    //Check if there are some connected remotes
+                    checkRemotes();
                 }
 
                 @Override
@@ -463,7 +485,6 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                     Log.i(LOG_TAG, "A new remote joined.");
                     if (mRemoteId == null){ //one-to-one, the first to arrive, will be the used
                         MainActivity.this.mRemoteId = remoteId;
-                        isRemote = true;
                         initRemoteFragment(remoteId);
                     }
                 }
@@ -472,7 +493,6 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                 public void onRemoteLeft(OTWrapper otWrapper, String remoteId) throws ListenerException {
                     Log.i(LOG_TAG, "A new remote left.");
                     if ( mRemoteId != null && remoteId == mRemoteId ) { //one-to-one
-                        isRemote = false;
                         mRemoteId = null;
                     }
                 }
@@ -578,7 +598,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
         if (mWrapper != null) {
             mWrapper.enableLocalMedia(MediaType.VIDEO, video);
 
-            if (isRemote) {
+            if ( mRemoteId != null ) {
                 if (!video) {
                     mAudioOnlyImage = new ImageView(this);
                     mAudioOnlyImage.setImageResource(R.drawable.avatar);
@@ -635,12 +655,12 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                 isCallInProgress = true;
 
                 //Check if there are some connected remotes
-                if ( isRemote ){
+                if ( mRemoteId != null ){
                     if (!mWrapper.isRemoteMediaEnabled(mRemoteId, MediaType.VIDEO)){
                         onAudioOnly(true);
                     }
                     else {
-                        setRemoteView(mRemoteView);
+                        setRemoteView(mRemoteView, mRemoteId);
                     }
                 }
             } else {
