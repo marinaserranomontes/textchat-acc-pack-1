@@ -138,7 +138,6 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
             mWrapper.connect();
         }
 
-
         //init controls fragments
         if (savedInstanceState == null) {
             mFragmentTransaction = getSupportFragmentManager().beginTransaction();
@@ -350,7 +349,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
 
     private void checkRemotes(){
         if ( mRemoteId != null ){
-            if (!mWrapper.isRemoteMediaEnabled(mRemoteId, MediaType.VIDEO)){
+            if (!mWrapper.isReceivedMediaEnabled(mRemoteId, MediaType.VIDEO)){
                 onAudioOnly(true);
             }
             else {
@@ -469,14 +468,14 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
 
 
                 @Override
-                public void onStartedSharingMedia(OTWrapper otWrapper, boolean screensharing) throws ListenerException {
+                public void onStartedPublishingMedia(OTWrapper otWrapper, boolean screensharing) throws ListenerException {
                     Log.i(LOG_TAG, "Local started streaming video.");
                     //Check if there are some connected remotes
                     checkRemotes();
                 }
 
                 @Override
-                public void onStoppedSharingMedia(OTWrapper otWrapper, boolean screensharing) throws ListenerException {
+                public void onStoppedPublishingMedia(OTWrapper otWrapper, boolean screensharing) throws ListenerException {
                     Log.i(LOG_TAG, "Local stopped streaming video.");
                 }
 
@@ -498,7 +497,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                 }
 
                 @Override
-                public void onRemoteVideoChange(OTWrapper otWrapper, String remoteId, String reason, boolean videoActive, boolean subscribed) throws ListenerException {
+                public void onRemoteVideoChanged(OTWrapper otWrapper, String remoteId, String reason, boolean videoActive, boolean subscribed) throws ListenerException {
                     Log.i(LOG_TAG, "Remote video changed");
                     if (isCallInProgress) {
                         if (reason.equals("quality")) {
@@ -623,14 +622,14 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
     @Override
     public void onDisableRemoteAudio(boolean audio) {
         if (mWrapper != null) {
-            mWrapper.enableRemoteMedia(mRemoteId, MediaType.AUDIO, audio);
+            mWrapper.enableReceivedMedia(mRemoteId, MediaType.AUDIO, audio);
         }
     }
 
     @Override
     public void onDisableRemoteVideo(boolean video) {
         if (mWrapper != null) {
-            mWrapper.enableRemoteMedia(mRemoteId, MediaType.VIDEO, video);
+            mWrapper.enableReceivedMedia(mRemoteId, MediaType.VIDEO, video);
         }
     }
 
@@ -647,7 +646,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
         Log.i(LOG_TAG, "OnCall");
         if ( mWrapper != null && isConnected ) {
             if ( !isCallInProgress ) {
-                mWrapper.startSharingMedia(new PreviewConfig.PreviewConfigBuilder().
+                mWrapper.startPublishingMedia(new PreviewConfig.PreviewConfigBuilder().
                         name("Tokboxer").build(), false);
                 if ( mPreviewFragment != null ) {
                     mPreviewFragment.setEnabled(true);
@@ -656,7 +655,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
 
                 //Check if there are some connected remotes
                 if ( mRemoteId != null ){
-                    if (!mWrapper.isRemoteMediaEnabled(mRemoteId, MediaType.VIDEO)){
+                    if (!mWrapper.isReceivedMediaEnabled(mRemoteId, MediaType.VIDEO)){
                         onAudioOnly(true);
                     }
                     else {
@@ -664,7 +663,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                     }
                 }
             } else {
-                mWrapper.stopSharingMedia(false);
+                mWrapper.stopPublishingMedia(false);
                 isCallInProgress = false;
                 cleanViewsAndControls();
             }
