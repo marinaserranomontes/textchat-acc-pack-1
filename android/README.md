@@ -1,6 +1,6 @@
 ![logo](../tokbox-logo.png)
 
-# OpenTok Text Chat Accelerator Pack for Android<br/>Version 2.0.0
+# OpenTok Text Chat Accelerator Pack for Android<br/>Version 2.1.0
 
 ## Quick start
 
@@ -59,7 +59,7 @@ maven { url  "http://tokbox.bintray.com/maven" }
 
 
 <code>
-compile 'com.opentok.android:opentok-text-chat-acc-pack:2.0.0'
+compile 'com.opentok.android:opentok-text-chat-acc-pack:2.1.0'
 </code>
 
 </li>
@@ -72,7 +72,7 @@ compile 'com.opentok.android:opentok-text-chat-acc-pack:2.0.0'
 
 #### Downloading and Installing the AAR File
 
-1.  Download the [Text Chat Accelerator Pack zip file](https://s3.amazonaws.com/artifact.tokbox.com/solution/rel/textchat-acc-pack/android/opentok-text-chat-acc-pack-2.0.0.zip) containing the AAR file and documentation, and extract the **opentok-text-chat-acc-pack-2.0.0.aar** file.
+1.  Download the [Text Chat Accelerator Pack zip file](https://s3.amazonaws.com/artifact.tokbox.com/solution/rel/textchat-acc-pack/android/opentok-text-chat-acc-pack-2.1.0.zip) containing the AAR file and documentation, and extract the **opentok-text-chat-acc-pack-2.1.0.aar** file.
 2.  Right-click the app name and select **Open Module Settings** and click **+**.
 3.  Select **Import .JAR/.AAR Package** and click  **Next**.
 4.  Browse to the **Text Chat Accelerator Pack library AAR** and click **Finish**.
@@ -163,16 +163,12 @@ The `TextChatListener` interface monitors state changes in the `TextChatFragment
 
 ```java
 public interface TextChatListener {
-
-        void onNewSentMessage(ChatMessage message);
-        void onNewReceivedMessage(ChatMessage message);
-        void onTextChatError(String error);
-        void onClose();
+  void onNewSentMessage(ChatMessage message);
+  void onNewReceivedMessage(ChatMessage message);
+  void onTextChatError(String error);
+  void onClose();
 }
 ```
-
-
-
 
 #### Initialization methods
 
@@ -189,13 +185,13 @@ For example, the following private method instantiates a `TextChatFragment` obje
 
 ```java
     private void initTextChatFragment(){
-        mTextChatFragment = TextChatFragment.newInstance(mComm.getSession(), OpenTokConfig.API_KEY);
+        mTextChatFragment = TextChatFragment.newInstance(sdkWrapper, OpenTokConfig.API_KEY);
 
         getSupportFragmentManager().beginTransaction()
                 .add(R.id.textchat_fragment_container, mTextChatFragment).commit();
     }
 ```
-
+Review the [OpenTok SDK Wrapper](https://github.com/opentok/acc-pack-common/tree/master/android).
 
 This line of code illustrates how to set the maximum message length to 1050 characters and set a new sender alias:
 
@@ -204,7 +200,6 @@ mTextChatFragment.setMaxTextLength(1050);
             mTextChatFragment.setSenderAlias("Tokboxer");
             mTextChatFragment.setListener(this);
 ```
-
 
 #### Sending and receiving messages
 
@@ -227,8 +222,6 @@ The `onNewReceivedMessage()` event is fired when a new `ChatMessage` is received
         Log.i(LOG_TAG, "New received message");
     }
 ```
-
-
 
 ### User interface
 
