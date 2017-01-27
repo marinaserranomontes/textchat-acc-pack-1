@@ -1,8 +1,5 @@
 apply plugin: 'com.android.application'
 
-android {
-    apply plugin: 'com.android.application'
-
     android {
         compileSdkVersion 25
         buildToolsVersion "25.0.0"
@@ -41,4 +38,4 @@ android {
         compile 'com.android.support:design:25.+'
         compile 'com.opentok.android:opentok-text-chat-acc-pack:2.1.+'
     }
-}
+
