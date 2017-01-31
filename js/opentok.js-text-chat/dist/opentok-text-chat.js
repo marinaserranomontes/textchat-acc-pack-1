@@ -387,7 +387,7 @@
     });
     _sentMessageHistory = [];
   };
-  
+
   var _initTextChat = function () {
     _log(_logEventData.actionStart, _logEventData.variationAttempt);
     _enabled = true;
@@ -478,7 +478,8 @@
       limitCharacterMessage: 160,
       controlsContainer: '#feedControls',
       textChatContainer: '#chatContainer',
-      alwaysOpen: false
+      alwaysOpen: false,
+      appendControl: true,
     });
   };
 
@@ -524,7 +525,7 @@
           if (_controlAdded) {
             document.querySelector('#enableTextChat').classList.remove('ots-hidden');
           } else {
-            _appendControl();
+            _this.options.appendControl && _appendControl()
           }
         }
       });
@@ -571,7 +572,7 @@
     if (_this.options.alwaysOpen) {
       _initTextChat();
     } else {
-      _appendControl();
+      _this.options.appendControl && _appendControl()
     }
     _registerEvents();
     _addEventListeners();
