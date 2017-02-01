@@ -386,6 +386,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
             mPreviewViewContainer.addView(localView, layoutParamsPreview);
         }
         else {
+            mLocalAudioOnlyView.setVisibility(View.GONE);
             mPreviewViewContainer.removeAllViews();
         }
     }
@@ -407,7 +408,7 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
                 mRemoteFragment.show();
         } else { //view null --> remove view
             if (mRemoteViewContainer.getChildCount() > 0) {
-                mRemoteViewContainer.removeView(mWrapper.getRemoteStreamStatus(remoteId).getView());
+                mRemoteViewContainer.removeAllViews();
             }
             mRemoteViewContainer.setClickable(false);
             mAudioOnlyView.setVisibility(View.GONE);
@@ -700,7 +701,6 @@ public class MainActivity extends AppCompatActivity implements PreviewControlFra
     public void onNewReceivedMessage(ChatMessage message) {
         Log.i(LOG_TAG, "New received message");
         if (mTextChatContainer.getVisibility() != View.VISIBLE ) {
-            Log.i("MARINAS", "UNREAD VISIBLE");
             mPreviewFragment.unreadMessages(true);
         }
         else
